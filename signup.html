@@ -1,46 +1,62 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Signup Form</title>
-</head>
-<body>
-  <h2>Sign up</h2>
-  <form id="signupForm" action="http://localhost:3000/signup" method="POST">
-    <label for="name">Name:</label>
-    <input type="text" id="name" name="name" required><br><br>
-    
-    <label for="email">Email:</label>
-    <input type="email" id="email" name="email" required><br><br>
-    
-    <label for="password">Password:</label>
-    <input type="password" id="password" name="password" required><br><br>
-    
-    <input type="submit" value="Sign Up">
-  </form>
+  <head>
+    <title>User Signup</title>
+  </head>
+  <body>
+    <h1>User Signup</h1>
+    <form id="signupForm">
+      <div>
+        <label for="email">Email:</label>
+        <input type="email" id="email" name="email" required />
+      </div>
+      <div>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required />
+      </div>
+      <button type="submit">Submit</button>
+    </form>
 
-  <script>
-    const signupForm = document.getElementById('signupForm');
+    <script>
+      document
+        .getElementById("signupForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
 
-    signupForm.addEventListener('submit', (event) => {
-      event.preventDefault();
+          const form = event.target;
+          const formData = new FormData(form);
+          const user = {};
 
-      const formData = new FormData(signupForm);
+          for (let [key, value] of formData.entries()) {
+            user[key] = value;
+          }
 
-      fetch(signupForm.action, {
-        method: signupForm.method,
-        body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-        console.log(data); // Handle the response from the server
-
-        // Reset the form
-        signupForm.reset();
-      })
-      .catch(error => {
-        console.error('Error:', error);
-      });
-    });
-  </script>
-</body>
+          fetch("http://localhost:3000/signup", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(user),
+          })
+            .then((response) => {
+              if (response.ok) {
+                return response.json();
+              } else if (response.status === 409) {
+                throw new Error("Email already exists");
+              } else {
+                throw new Error("Failed to submit user details");
+              }
+            })
+            .then((data) => {
+              console.log(data); // Handle response data
+              form.reset(); // Clear form input values
+              alert("User details submitted successfully!");
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert(error.message);
+            });
+        });
+    </script>
+  </body>
 </html>
