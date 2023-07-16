@@ -24,7 +24,9 @@ connection.connect((err) => {
   const createTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
       password VARCHAR(255) NOT NULL
     )
   `;
@@ -44,10 +46,12 @@ app.use(cors());
 
 // Signup route
 app.post("/signup", (req, res) => {
-  const { email, password } = req.body;
+  const { name, email, phone, password } = req.body;
 
   const user = {
+    name: name,
     email: email,
+    phone: phone,
     password: password,
   };
 
@@ -74,6 +78,38 @@ app.post("/signup", (req, res) => {
           }
           res.status(200).json({ message: "User details stored successfully" });
         });
+      }
+    }
+  );
+});
+
+// Login route
+app.post("/login", (req, res) => {
+  const { email, password } = req.body;
+
+  connection.query(
+    "SELECT * FROM users WHERE email = ?",
+    email,
+    (err, results) => {
+      if (err) {
+        console.error("Error checking email: ", err);
+        res.status(500).json({ error: "Failed to check email" });
+        return;
+      }
+
+      if (results.length === 0) {
+        // Email does not exist
+        res.status(404).json({ error: "User does not exist" });
+      } else {
+        const user = results[0];
+
+        if (user.password === password) {
+          // Password matches
+          res.status(200).json({ message: "User logged in successfully" });
+        } else {
+          // Password does not match
+          res.status(401).json({ error: "Email and password do not match" });
+        }
       }
     }
   );
