@@ -17,8 +17,6 @@
       <button type="submit">Submit</button>
     </form>
 
-    <p>Don't have an account? <a href="signup.html">Sign up</a></p>
-
     <script>
       document
         .getElementById("loginForm")
@@ -53,7 +51,18 @@
             })
             .then((data) => {
               console.log(data); // Handle response data
-              alert("User logged in successfully!");
+              if (data.userDetails) {
+                alert("User logged in successfully!");
+                localStorage.setItem(
+                  "userDetails",
+                  JSON.stringify(data.userDetails)
+                );
+                window.location.href = "C:\\Users\\Sahithi Alam\\Desktop\\expenseTracker\\userExpenses.html";
+// Redirect to expenses.html
+              } else {
+                alert("User logged in successfully!");
+                // Do something else if needed
+              }
             })
             .catch((error) => {
               console.error("Error:", error);
