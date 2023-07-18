@@ -1,5 +1,5 @@
 const express = require("express");
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
 
@@ -22,7 +22,7 @@ connection.connect((err) => {
   console.log("Connected to the database");
 
   // Create the users table if it doesn't exist
-  const createTableQuery = `
+  const createUserTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
@@ -32,13 +32,32 @@ connection.connect((err) => {
     )
   `;
 
-  connection.query(createTableQuery, (err, results) => {
+  connection.query(createUserTableQuery, (err, results) => {
     if (err) {
       console.error("Error creating users table: ", err);
     } else {
       console.log("Users table created or already exists");
     }
   });
+});
+
+const createExpensesTableQuery = `
+  CREATE TABLE IF NOT EXISTS expenses (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    expenseamount DECIMAL(10, 2) NOT NULL,
+    category VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+  )
+`;
+
+connection.query(createExpensesTableQuery, (err, results) => {
+  if (err) {
+    console.error("Error creating expenses table: ", err);
+  } else {
+    console.log("Expenses table created or already exists");
+  }
 });
 
 // Middleware
@@ -96,6 +115,7 @@ app.post("/signup", (req, res) => {
 });
 
 // Login route
+// Login route
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -125,13 +145,84 @@ app.post("/login", (req, res) => {
 
           if (isMatch) {
             // Password matches
-            res.status(200).json({ message: "User logged in successfully" });
+            const userDetails = {
+              name: user.name,
+              email: user.email,
+              phone: user.phone,
+              userId: user.id,
+            };
+            res.status(200).json({
+              message: "User logged in successfully",
+              userDetails: userDetails,
+            });
           } else {
             // Password does not match
             res.status(401).json({ error: "Email and password do not match" });
           }
         });
       }
+    }
+  );
+});
+
+// Get expenses route
+app.get("/expenses/get-expenses/:userId", (req, res) => {
+  const userId = req.params.userId;
+
+  connection.query(
+    "SELECT * FROM expenses WHERE user_id = ?",
+    userId,
+    (err, results) => {
+      if (err) {
+        console.error("Error retrieving expenses: ", err);
+        res.status(500).json({ error: "Failed to retrieve expenses" });
+        return;
+      }
+
+      res.status(200).json(results);
+    }
+  );
+});
+
+//add expense
+app.post("/expenses/addexpense/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const { expenseamount, category, description } = req.body;
+
+  const expense = {
+    expenseamount: expenseamount,
+    category: category,
+    description: description,
+    user_id: userId,
+  };
+
+  connection.query("INSERT INTO expenses SET ?", expense, (err, results) => {
+    if (err) {
+      console.error("Error storing expense details: ", err);
+      res.status(500).json({ error: "Failed to store expense details" });
+      return;
+    }
+
+    res.status(200).json({ message: "Expense details stored successfully" });
+  });
+});
+
+// Delete expense route
+app.delete("/expenses/delete-expense/:userId", (req, res) => {
+  const userId = req.params.userId;
+  const expenseId = req.query.expenseId;
+
+  connection.query(
+    "DELETE FROM expenses WHERE user_id = ? AND id = ?",
+    [userId, expenseId],
+    (err, results) => {
+      if (err) {
+        console.error("Error deleting expense: ", err);
+        res.status(500).json({ error: "Failed to delete expense" });
+        return;
+      }
+
+      res.status(200).json({ message: "Expense deleted successfully" });
     }
   );
 });
