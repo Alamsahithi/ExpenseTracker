@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Login</title>
+  </head>
+  <body>
+    <h1>Login</h1>
+    <form id="loginForm">
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required /><br />
+      <label for="password">Password:</label>
+      <input type="password" id="password" name="password" required /><br />
+      <input type="submit" value="Login" />
+    </form>
+    <div>
+      <p>Don't have an account? <a href="signup.html">Signup to continue</a></p>
+    </div>
+
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          fetch("http://localhost:8080/user/signin", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                return response.json().then((data) => {
+                  alert(data.error);
+                  throw new Error(data.error);
+                });
+              }
+              return response.json();
+            })
+            .then((data) => {
+              console.log(data);
+              // Store the JWT and user details in local storage
+              localStorage.setItem("token", data.token);
+              localStorage.setItem(
+                "userDetails",
+                JSON.stringify(data.data.user)
+              );
+
+              alert("Login successful!");
+              window.location.href = "C:/Srinath/expense-tracker/expenses.html"; // Redirect to expenses page after successful login
+            })
+            .catch((error) => {
+              console.error("Error during login: ", error);
+            });
+        });
+    </script>
+  </body>
+</html>

@@ -53,12 +53,9 @@
               console.log(data); // Handle response data
               if (data.userDetails) {
                 alert("User logged in successfully!");
-                localStorage.setItem(
-                  "userDetails",
-                  JSON.stringify(data.userDetails)
-                );
-                window.location.href = "C:\\Users\\Sahithi Alam\\Desktop\\expenseTracker\\userExpenses.html";
-// Redirect to expenses.html
+                localStorage.setItem("token", data.token);
+
+                window.location.href = "expenses.html"; // Redirect to expenses.html
               } else {
                 alert("User logged in successfully!");
                 // Do something else if needed

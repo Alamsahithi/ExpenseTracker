@@ -8,7 +8,7 @@
     <form id="signupForm">
       <div>
         <label for="name">Name:</label>
-        <input type="text" id="name" name="name" required />
+        <input type="text" id="fullName" name="fullName" required />
       </div>
       <div>
         <label for="email">Email:</label>
@@ -22,10 +22,11 @@
         <label for="password">Password:</label>
         <input type="password" id="password" name="password" required />
       </div>
+
       <button type="submit">Submit</button>
       <div>
         <p>
-          Already have an account? <a href="login.html">Login to continue</a>
+          Already have an account? <a href="signin.html">Login to continue</a>
         </p>
       </div>
     </form>
@@ -44,7 +45,7 @@
             user[key] = value;
           }
 
-          fetch("http://localhost:3000/signup", {
+          fetch("http://localhost:8080/user/signup", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
