@@ -2,16 +2,17 @@ const express = require("express");
 const mysql = require("mysql2");
 const cors = require("cors");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const app = express();
-const port = 3000;
+const port = 3001;
 
 // MySQL configuration
 const connection = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "SriSahi@22",
-  database: "expensetracker",
+  password: "Munnuru@1998",
+  database: "expensetrackerapp",
 });
 
 connection.connect((err) => {
@@ -22,47 +23,51 @@ connection.connect((err) => {
   console.log("Connected to the database");
 
   // Create the users table if it doesn't exist
-  const createUserTableQuery = `
+  const createUsersTableQuery = `
     CREATE TABLE IF NOT EXISTS users (
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
-      email VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL UNIQUE,
       phone VARCHAR(20) NOT NULL,
       password VARCHAR(255) NOT NULL
     )
   `;
 
-  connection.query(createUserTableQuery, (err, results) => {
+  connection.query(createUsersTableQuery, (err, results) => {
     if (err) {
       console.error("Error creating users table: ", err);
     } else {
       console.log("Users table created or already exists");
     }
   });
-});
 
-const createExpensesTableQuery = `
-  CREATE TABLE IF NOT EXISTS expenses (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    expenseamount DECIMAL(10, 2) NOT NULL,
-    category VARCHAR(255) NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    user_id INT NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )
-`;
+  // Create the expenses table if it doesn't exist
+  const createExpensesTableQuery = `
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      expenseamount FLOAT NOT NULL,
+      category VARCHAR(255) NOT NULL,
+      description VARCHAR(255) NOT NULL,
+      user_id INT NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `;
 
-connection.query(createExpensesTableQuery, (err, results) => {
-  if (err) {
-    console.error("Error creating expenses table: ", err);
-  } else {
-    console.log("Expenses table created or already exists");
-  }
+  connection.query(createExpensesTableQuery, (err, results) => {
+    if (err) {
+      console.error("Error creating expenses table: ", err);
+    } else {
+      console.log("Expenses table created or already exists");
+    }
+  });
 });
 
 // Middleware
 app.use(express.json());
 app.use(cors());
+
+// JWT secret key
+const secretKey = "UYGR$#%^&*UIHGHGCDXRSW"; // Replace this with a strong and secure key in production
 
 // Signup route
 app.post("/signup", (req, res) => {
@@ -115,7 +120,6 @@ app.post("/signup", (req, res) => {
 });
 
 // Login route
-// Login route
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
 
@@ -145,16 +149,20 @@ app.post("/login", (req, res) => {
 
           if (isMatch) {
             // Password matches
-            const userDetails = {
+            // Create a JWT with user details
+            const tokenPayload = {
+              userId: user.id,
               name: user.name,
               email: user.email,
               phone: user.phone,
-              userId: user.id,
             };
-            res.status(200).json({
-              message: "User logged in successfully",
-              userDetails: userDetails,
-            });
+            const tokenOptions = {
+              expiresIn: "1h", // JWT will expire in 1 hour, adjust as needed
+            };
+            const token = jwt.sign(tokenPayload, secretKey, tokenOptions);
+
+            // Send the JWT and user details in the response
+            res.status(200).json({ token, userDetails: tokenPayload });
           } else {
             // Password does not match
             res.status(401).json({ error: "Email and password do not match" });
@@ -165,9 +173,51 @@ app.post("/login", (req, res) => {
   );
 });
 
+// Function to authenticate token from headers
+function authenticateToken(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ error: "Unauthorized: No token provided" });
+  }
+
+  jwt.verify(token, secretKey, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: "Forbidden: Invalid token" });
+    }
+    req.user = user;
+    next();
+  });
+}
+
+// Delete expense route
+app.delete("/expenses/delete-expense", authenticateToken, (req, res) => {
+  const userId = req.user.userId;
+  const expenseId = req.query.expenseId;
+
+  connection.query(
+    "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+    [expenseId, userId],
+    (err, results) => {
+      if (err) {
+        console.error("Error deleting expense: ", err);
+        res.status(500).json({ error: "Failed to delete expense" });
+        return;
+      }
+
+      if (results.affectedRows === 0) {
+        // Expense not found or doesn't belong to the user
+        res.status(404).json({ error: "Expense not found" });
+      } else {
+        res.status(200).json({ message: "Expense deleted successfully" });
+      }
+    }
+  );
+});
+
 // Get expenses route
-app.get("/expenses/get-expenses/:userId", (req, res) => {
-  const userId = req.params.userId;
+app.get("/expenses/get-expenses", authenticateToken, (req, res) => {
+  const userId = req.user.userId;
 
   connection.query(
     "SELECT * FROM expenses WHERE user_id = ?",
@@ -184,15 +234,15 @@ app.get("/expenses/get-expenses/:userId", (req, res) => {
   );
 });
 
-//add expense
-app.post("/expenses/addexpense/:userId", (req, res) => {
-  const userId = req.params.userId;
+// Add expense route
+app.post("/expenses/addexpense", authenticateToken, (req, res) => {
+  const userId = req.user.userId;
   const { expenseamount, category, description } = req.body;
 
   const expense = {
-    expenseamount: expenseamount,
-    category: category,
-    description: description,
+    expenseamount: parseFloat(expenseamount),
+    category,
+    description,
     user_id: userId,
   };
 
@@ -203,28 +253,8 @@ app.post("/expenses/addexpense/:userId", (req, res) => {
       return;
     }
 
-    res.status(200).json({ message: "Expense details stored successfully" });
+    res.status(200).json({ message: "Expense saved successfully" });
   });
-});
-
-// Delete expense route
-app.delete("/expenses/delete-expense/:userId", (req, res) => {
-  const userId = req.params.userId;
-  const expenseId = req.query.expenseId;
-
-  connection.query(
-    "DELETE FROM expenses WHERE user_id = ? AND id = ?",
-    [userId, expenseId],
-    (err, results) => {
-      if (err) {
-        console.error("Error deleting expense: ", err);
-        res.status(500).json({ error: "Failed to delete expense" });
-        return;
-      }
-
-      res.status(200).json({ message: "Expense deleted successfully" });
-    }
-  );
 });
 
 // Start the server
