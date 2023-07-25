@@ -4,9 +4,19 @@
     <title>Expenses</title>
   </head>
   <body>
-    <h1>Expenses</h1>
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        width: 100%;
+        justify-content: space-between;
+      "
+    >
+      <h1>Expenses</h1>
+      <button onclick="hadleLogout()">Logout</button>
+    </div>
 
-    <h2>Add Expense</h2>
+    <h2>Add Expense Form</h2>
     <form id="addExpenseForm">
       <div>
         <label for="expenseAmount">Expense Amount:</label>
@@ -30,25 +40,148 @@
     </form>
 
     <div>
-      <button onclick="createOrder()">Buy Premium</button>
+      <div id="premiumStatus"></div>
+      <button id="buyPremiumButton" onclick="createOrder()">Buy Premium</button>
+      <button
+        id="showLeaderBoard"
+        style="display: none"
+        onclick="fetchLeaderBoard()"
+      >
+        Show Leader Board
+      </button>
     </div>
+    <div></div>
+    <h2>Leader Board</h2>
+    <table id="leaderBoardTable" style="display: none">
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Username</th>
+          <th>Total Expenses</th>
+        </tr>
+      </thead>
+      <tbody id="leaderBoardBody"></tbody>
+    </table>
 
     <h2>Expense List</h2>
     <ul id="expenseList"></ul>
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
+      function hadleLogout() {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = "./signin.html";
+      }
+      function updatePremiumStatus(isPremiumUser) {
+        const premiumStatusElement = document.getElementById("premiumStatus");
+        const buyPremiumButton = document.getElementById("buyPremiumButton");
+        const showLeaderBoardButton =
+          document.getElementById("showLeaderBoard");
+
+        if (isPremiumUser) {
+          premiumStatusElement.textContent = "You are a premium user.";
+          buyPremiumButton.style.display = "none"; // Hide the buy premium button
+          showLeaderBoardButton.style.display = "block";
+        } else {
+          premiumStatusElement.textContent = "";
+          buyPremiumButton.style.display = "block"; // Show the buy premium button
+        }
+      }
+
+      function fetchUserProfileAndUpdateUI() {
+        const token = localStorage.getItem("token");
+        if (token) {
+          fetch("http://localhost:8080/user/profile", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+            .then((response) => {
+              if (response.ok) {
+                return response.json();
+              } else {
+                throw new Error("Failed to retrieve user profile");
+              }
+            })
+            .then((userProfile) => {
+              const isPremiumUser = userProfile.premiumUser === true;
+              updatePremiumStatus(isPremiumUser);
+              localStorage.setItem("userDetails", JSON.stringify(userProfile));
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        } else {
+          alert("User details not found. Please log in again.");
+          window.location.href = "C:/Users/Sahithi%20Alam/expense-tracker/signin.html";
+        }
+      }
+
+      function fetchLeaderBoard(event) {
+        const userDetails = JSON.parse(localStorage.getItem("userDetails"));
+        const token = localStorage.getItem("token");
+        if (token) {
+          fetch("http://localhost:8080/premium/leaderboard", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+            .then((response) => {
+              if (response.ok) {
+                return response.json();
+              } else {
+                throw new Error("Failed to retrieve leader borad");
+              }
+            })
+            .then((leaderboard) => {
+              displayLeaderBoardTable(leaderboard);
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+            });
+        } else {
+          alert("User details not found. Please log in again.");
+          window.location.href("C:/Users/Sahithi%20Alam/expense-tracker/signin.html");
+        }
+      }
+
+      function displayLeaderBoardTable(leaderboard) {
+        const table = document.getElementById("leaderBoardTable");
+        const tableBody = document.getElementById("leaderBoardBody");
+
+        // Clear any existing rows in the table
+        tableBody.innerHTML = "";
+
+        leaderboard.forEach((userTotalExpense) => {
+          const { userId, totalExpenses, username } = userTotalExpense;
+          const row = tableBody.insertRow();
+
+          const userIdCell = row.insertCell();
+          userIdCell.textContent = userId;
+
+          const usernameCell = row.insertCell();
+          usernameCell.textContent = username;
+
+          const totalExpensesCell = row.insertCell();
+          totalExpensesCell.textContent = totalExpenses;
+        });
+
+        // Display the table
+        table.style.display = "block";
+      }
+
       function createOrder(event) {
         const userDetails = JSON.parse(localStorage.getItem("userDetails"));
         const userId = userDetails ? userDetails.id : null;
         const token = localStorage.getItem("token");
 
-        if (userId) {
+        if (token) {
           const order_id = `${userId}_${Date.now()}`;
           const orderData = {
             order_id: order_id,
-            amount: 100, // Replace "100" with the actual amount for premium purchase
-            currency: "INR", // Replace "INR" with the actual currency code
+            amount: 100,
+            currency: "INR",
           };
 
           fetch("http://localhost:8080/payment/create-order", {
@@ -72,19 +205,39 @@
                 key: "rzp_test_FePwfV1JgZ9mFf",
                 order_id: razorpay_order_id,
                 handler: async (response) => {
+                  fetch("http://localhost:8080/payment/update-order", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      razorpay_order_id: response?.razorpay_order_id,
+                      status: "SUCCESS",
+                    }),
+                  });
                   alert("Payment Successfull");
+                  fetchUserProfileAndUpdateUI();
                 },
               };
               var rzp1 = new Razorpay(options);
               rzp1.open();
               rzp1.on("payment.failed", function (response) {
-                alert(response.error.code);
-                alert(response.error.description);
-                alert(response.error.source);
-                alert(response.error.step);
-                alert(response.error.reason);
-                alert(response.error.metadata.order_id);
-                alert(response.error.metadata.payment_id);
+                fetch("http://localhost:8080/payment/update-order", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({
+                    razorpay_order_id: response?.order_id,
+                    status: "FAILED",
+                  }),
+                });
+                alert("Payment failed");
+
+                // Fetch user profile after payment failure
+                fetchUserProfileAndUpdateUI();
               });
             })
             .catch((error) => {
@@ -93,50 +246,42 @@
             });
         } else {
           alert("User details not found. Please log in again.");
+          window.location.href = "C:/Users/Sahithi%20Alam/expense-tracker/signin.html";
         }
       }
-      // Function to render the expense list
+
       function renderExpenseList(expenses) {
         const expenseList = document.getElementById("expenseList");
         expenseList.innerHTML = "";
 
         expenses.forEach((expense) => {
           const listItem = document.createElement("li");
-
-          // Expense details
           const expenseAmount = parseFloat(expense.amount);
           const expenseDetails = `Amount: $${expenseAmount.toFixed(
             2
           )} | Category: ${expense.category} | Description: ${
             expense.description
           }`;
+          listItem.textContent = expenseDetails;
 
-          // Delete button
           const deleteButton = document.createElement("button");
           deleteButton.textContent = "Delete";
           deleteButton.addEventListener("click", () => {
-            const userDetails = JSON.parse(localStorage.getItem("userDetails"));
-            const userId = userDetails ? userDetails.id : null;
-            if (userId) {
-              deleteExpense(userId, expense.id);
-            } else {
-              alert("User details not found. Please log in again.");
-            }
+            // Call the deleteExpense function with the expenseId
+            deleteExpense(expense.id);
           });
 
-          listItem.textContent = expenseDetails;
           listItem.appendChild(deleteButton);
           expenseList.appendChild(listItem);
         });
       }
 
-      // Function to fetch and display expenses
       function fetchExpenses() {
         const userDetails = JSON.parse(localStorage.getItem("userDetails"));
         const userId = userDetails ? userDetails.id : null;
         const token = localStorage.getItem("token");
 
-        if (userId) {
+        if (token) {
           fetch(`http://localhost:8080/expense/all-expenses`, {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -161,10 +306,8 @@
         }
       }
 
-      // Function to delete an expense
-      // Function to delete an expense
       function deleteExpense(userId, expenseId) {
-        const token = localStorage.getItem("token"); // Fetch the token from local storage
+        const token = localStorage.getItem("token");
 
         fetch(
           `http://localhost:8080/expense/delete-expense?expenseId=${expenseId}`,
@@ -178,7 +321,7 @@
           .then((response) => {
             if (response.ok) {
               alert("Expense deleted successfully!");
-              fetchExpenses(); // Fetch and display updated expenses
+              fetchExpenses();
             } else {
               throw new Error("Failed to delete expense");
             }
@@ -189,12 +332,10 @@
           });
       }
 
-      // Add event listener for the add expense form submission
       document
         .getElementById("addExpenseForm")
         .addEventListener("submit", function (event) {
           event.preventDefault();
-
           const form = event.target;
           const formData = new FormData(form);
           const expense = {};
@@ -225,7 +366,7 @@
                   if (response.ok) {
                     alert("Expense saved successfully!");
                     form.reset();
-                    fetchExpenses(); // Fetch and display updated expenses
+                    fetchExpenses();
                   } else {
                     throw new Error("Failed to save expense");
                   }
@@ -242,8 +383,10 @@
           }
         });
 
-      // Fetch and display expenses when the page loads
-      document.addEventListener("DOMContentLoaded", fetchExpenses());
+      document.addEventListener("DOMContentLoaded", () => {
+        fetchUserProfileAndUpdateUI();
+        fetchExpenses();
+      });
     </script>
   </body>
 </html>

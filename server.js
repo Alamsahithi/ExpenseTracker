@@ -27,6 +27,7 @@ sequelize
 app.use("/user", require("./routes/userRoutes"));
 app.use("/expense", require("./routes/expenseRoutes"));
 app.use("/payment", require("./routes/paymentRoutes"));
+app.use("/premium", require("./routes/premiumRoutes"));
 
 app.listen(port, () => {
   console.log(`Server started on ${port}`);
