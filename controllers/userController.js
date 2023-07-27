@@ -39,9 +39,9 @@ const userSignup = async (req, res) => {
           password: hashedPassword,
           phone,
           premiumUser: false,
+          totalExpenses: 0,
         });
         if (user) {
-          const { id, fullName, email, phone, premiumUser } = user;
           return res.status(201).json({
             status: true,
             message: "User created successfully",
