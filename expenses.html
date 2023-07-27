@@ -55,7 +55,6 @@
     <table id="leaderBoardTable" style="display: none">
       <thead>
         <tr>
-          <th>User ID</th>
           <th>Username</th>
           <th>Total Expenses</th>
         </tr>
@@ -114,7 +113,7 @@
             });
         } else {
           alert("User details not found. Please log in again.");
-          window.location.href = "C:/Users/Sahithi%20Alam/expense-tracker/signin.html";
+          window.location.href = "C:/Srinath/expense-tracke/signin.html";
         }
       }
 
@@ -142,7 +141,7 @@
             });
         } else {
           alert("User details not found. Please log in again.");
-          window.location.href("C:/Users/Sahithi%20Alam/expense-tracker/signin.html");
+          window.location.href("C:/Srinath/expense-tracker/signin.html");
         }
       }
 
@@ -154,14 +153,11 @@
         tableBody.innerHTML = "";
 
         leaderboard.forEach((userTotalExpense) => {
-          const { userId, totalExpenses, username } = userTotalExpense;
+          const { totalExpenses, fullName } = userTotalExpense;
           const row = tableBody.insertRow();
 
-          const userIdCell = row.insertCell();
-          userIdCell.textContent = userId;
-
           const usernameCell = row.insertCell();
-          usernameCell.textContent = username;
+          usernameCell.textContent = fullName;
 
           const totalExpensesCell = row.insertCell();
           totalExpensesCell.textContent = totalExpenses;
@@ -246,7 +242,7 @@
             });
         } else {
           alert("User details not found. Please log in again.");
-          window.location.href = "C:/Users/Sahithi%20Alam/expense-tracker/signin.html";
+          window.location.href = "C:/Srinath/expense-tracker/signin.html";
         }
       }
 
@@ -267,7 +263,6 @@
           const deleteButton = document.createElement("button");
           deleteButton.textContent = "Delete";
           deleteButton.addEventListener("click", () => {
-            // Call the deleteExpense function with the expenseId
             deleteExpense(expense.id);
           });
 
@@ -306,7 +301,8 @@
         }
       }
 
-      function deleteExpense(userId, expenseId) {
+      function deleteExpense(expenseId) {
+        console.log(expenseId);
         const token = localStorage.getItem("token");
 
         fetch(
