@@ -32,6 +32,8 @@ const addExpense = async (req, res) => {
         description,
       });
       if (expense) {
+        const updatedTotalExpenses = user.totalExpenses + parseFloat(amount);
+        await user.update({ totalExpenses: updatedTotalExpenses });
         return res.status(201).json({ message: "Expense saved successfully" });
       } else {
         return res
@@ -66,6 +68,9 @@ const deleteExpense = async (req, res) => {
         .status(400)
         .json({ message: "Expense not found or not associated with the user" });
     }
+    const updatedTotalExpenses =
+      user.totalExpenses - parseFloat(expense?.amount);
+    await user.update({ totalExpenses: updatedTotalExpenses });
     await expense.destroy();
     return res.status(200).json({ message: "Expense deleted successfully" });
   } catch (error) {
