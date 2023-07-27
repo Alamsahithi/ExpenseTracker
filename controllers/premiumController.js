@@ -11,27 +11,22 @@ const getLeaderBorad = async (req, res) => {
     if (!user.premiumUser) {
       return res.status(400).json({ message: "You are not a premium user" });
     }
-    const aggregatedExpenses = await User.findAll({
+    const leaderBoard = await User.findAll({
       attributes: [
-        "id",
         "fullName",
         [
-          Sequelize.fn("sum", Sequelize.col("Expenses.amount")),
+          Sequelize.fn("COALESCE", Sequelize.col("totalExpenses"), 0),
           "totalExpenses",
         ],
       ],
-      include: [{ model: Expense, attributes: [] }],
-      group: ["User.id"],
-      order: [[Sequelize.col("totalExpenses"), "DESC"]],
+      order: [["totalExpenses", "DESC"]],
     });
-    if (!aggregatedExpenses) {
+    if (!leaderBoard) {
       return res.status(500).json({ message: "Internal server error" });
     }
-    return res.status(200).json(aggregatedExpenses);
+    return res.status(200).json(leaderBoard);
   } catch (error) {
-    console.error("Error in getLeaderBorad:", error);
     return res.status(500).json({ message: "Internal server error" });
   }
 };
-
 module.exports = { getLeaderBorad };
