@@ -34,14 +34,13 @@
             .then((response) => {
               if (!response.ok) {
                 return response.json().then((data) => {
-                  alert(data.error);
-                  throw new Error(data.error);
+                  alert(data.message);
+                  throw new Error(data.message);
                 });
               }
               return response.json();
             })
             .then((data) => {
-              console.log(data);
               // Store the JWT and user details in local storage
               localStorage.setItem("token", data.token);
               localStorage.setItem(
@@ -50,7 +49,7 @@
               );
 
               alert("Login successful!");
-              window.location.href = "C:/Users/Sahithi%20Alam/expense-tracker/expenses.html"; // Redirect to expenses page after successful login
+              window.location.href = "C:/Srinath/expense-tracker/expenses.html"; // Redirect to expenses page after successful login
             })
             .catch((error) => {
               console.error("Error during login: ", error);
