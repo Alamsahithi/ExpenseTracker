@@ -1,5 +1,5 @@
 const Razorpay = require("razorpay");
-const Payment = require("../models/paymentModal");
+const Payment = require("../models/paymentModel");
 const User = require("../models/userModel");
 
 const createOrder = async (req, res) => {
