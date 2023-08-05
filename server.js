@@ -1,11 +1,12 @@
 const express = require("express");
-const dotenv = require("dotenv").config();
+require("dotenv").config();
 const cors = require("cors");
 const sequelize = require("./configs/databaseConfig");
 const port = process.env.PORT || 8080;
 const User = require("./models/userModel");
 const Expense = require("./models/expenseModel");
-const Payment = require("./models/paymentModal");
+const Payment = require("./models/paymentModel");
+const ForgotPasswordRequests = require("./models/forgotPasswordRequestsModel");
 
 const app = express();
 
@@ -18,6 +19,8 @@ Expense.belongsTo(User);
 
 User.hasMany(Payment);
 Payment.belongsTo(User);
+
+ForgotPasswordRequests.belongsTo(User, { foreignKey: "userId" });
 
 sequelize
   .sync()
