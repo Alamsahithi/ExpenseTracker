@@ -4,19 +4,66 @@
     <title>Login</title>
   </head>
   <body>
-    <h1>Login</h1>
     <form id="loginForm">
+      <h1>Login</h1>
       <label for="email">Email:</label>
       <input type="email" id="email" name="email" required /><br />
       <label for="password">Password:</label>
       <input type="password" id="password" name="password" required /><br />
       <input type="submit" value="Login" />
     </form>
-    <div>
+    <form id="forgorPasswordForm" style="display: none">
+      <h1>Forgot password</h1>
+      <label for="forgotPasswordEmail">Email</label>
+      <input
+        type="email"
+        name="forgotPasswordEmail"
+        id="forgotPasswordEmail"
+        required
+      />
+      <input type="submit" value="Submit" />
+    </form>
+    <div id="signup">
       <p>Don't have an account? <a href="signup.html">Signup to continue</a></p>
     </div>
-
+    <button onclick="handleForgotPassword()" id="forgotPasswordBtn">
+      Forgot password
+    </button>
+    <div id="signinLink" style="display: none">
+      <a href="signin.html">Signin to continue</a>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+      function handleForgotPassword() {
+        let loginForm = document.getElementById("loginForm");
+        loginForm.style.display = "none";
+        let forgorPasswordForm = document.getElementById("forgorPasswordForm");
+        forgorPasswordForm.style.display = "block";
+        let forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+        forgotPasswordBtn.style.display = "none";
+        let signupLink = document.getElementById("signup");
+        signupLink.style.display = "none";
+        let signinLink = document.getElementById("signinLink");
+        signinLink.style.display = "block";
+      }
+      document
+        .getElementById("forgorPasswordForm")
+        .addEventListener("submit", function (event) {
+          event.preventDefault();
+          const forgotPasswordEmail = document.getElementById(
+            "forgotPasswordEmail"
+          ).value;
+          axios
+            .post("http://localhost:8080/user/forgotpassword", {
+              forgotPasswordEmail,
+            })
+            .then((response) => {
+              alert(response.data.message);
+            })
+            .catch((error) => {
+              console.error("Error during forgot password request: ", error);
+            });
+        });
       document
         .getElementById("loginForm")
         .addEventListener("submit", function (event) {
@@ -41,7 +88,6 @@
               return response.json();
             })
             .then((data) => {
-              // Store the JWT and user details in local storage
               localStorage.setItem("token", data.token);
               localStorage.setItem(
                 "userDetails",
@@ -49,7 +95,7 @@
               );
 
               alert("Login successful!");
-              window.location.href = "C:/Srinath/expense-tracker/expenses.html"; // Redirect to expenses page after successful login
+              window.location.href = "C:/Srinath/expense-tracker/expenses.html";
             })
             .catch((error) => {
               console.error("Error during login: ", error);
