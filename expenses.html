@@ -38,7 +38,6 @@
       </div>
       <button type="submit">Add Expense</button>
     </form>
-
     <div>
       <div id="premiumStatus"></div>
       <button id="buyPremiumButton" onclick="createOrder()">Buy Premium</button>
@@ -50,10 +49,11 @@
         Show Leader Board
       </button>
     </div>
-    <div></div>
-    <h2>Leader Board</h2>
     <table id="leaderBoardTable" style="display: none">
       <thead>
+        <tr>
+          <th>Leaderboard</th>
+        </tr>
         <tr>
           <th>Username</th>
           <th>Total Expenses</th>
@@ -61,27 +61,118 @@
       </thead>
       <tbody id="leaderBoardBody"></tbody>
     </table>
-
+    <button id="download" style="display: none" onclick="download()">
+      Download Expenses
+    </button>
     <h2>Expense List</h2>
+    <label for="expensesPerPage">Expenses Per Page:</label>
+    <select id="expensesPerPage" onchange="handleExpensesPerPageChange()">
+      <option value="5">5</option>
+      <option value="10">10</option>
+      <option value="20">20</option>
+      <option value="30">30</option>
+      <option value="40">40</option>
+    </select>
     <ul id="expenseList"></ul>
+    <div id="pagination">
+      <button id="firstpage" onclick="handlePagination('first')">
+        First Page
+      </button>
+      <button id="previouspage" onclick="handlePagination('previous')">
+        Previous Page
+      </button>
+      <button id="nextpage" onclick="handlePagination('next')">
+        Next Page
+      </button>
+      <button id="lastpage" onclick="handlePagination('last')">
+        Last Page
+      </button>
+    </div>
 
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
+      let currentPage = 1;
+      let expensesPerPage = parseInt(
+        document.getElementById("expensesPerPage").value
+      ); // Adjust the page size as needed
+      let lastPage = 1;
+
+      function handleExpensesPerPageChange() {
+        expensesPerPage = parseInt(
+          document.getElementById("expensesPerPage").value
+        );
+        localStorage.setItem("expensesPerPage", expensesPerPage);
+        fetchExpenses();
+      }
+
+      function handlePagination(action) {
+        switch (action) {
+          case "first":
+            currentPage = 1;
+            break;
+          case "previous":
+            if (currentPage > 1) currentPage--;
+            break;
+          case "next":
+            if (currentPage < lastPage) currentPage++;
+            break;
+          case "last":
+            currentPage = lastPage;
+            break;
+          default:
+            break;
+        }
+        fetchExpenses();
+      }
+
+      function download() {
+        const token = localStorage.getItem("token");
+        if (token) {
+          fetch(`http://localhost:8080/user/download`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+            .then((response) => {
+              if (response.ok) {
+                return response.json();
+              } else {
+                throw new Error("Failed to retrieve expenses");
+              }
+            })
+            .then((response) => {
+              var a = document.createElement("a");
+              a.href = response?.fileUrl;
+              a.download = "myexpenses.csv";
+              a.click();
+            })
+            .catch((error) => {
+              console.error("Error:", error);
+              alert(error.message);
+            });
+        } else {
+          alert("User details not found. Please log in again.");
+        }
+      }
+
       function hadleLogout() {
         localStorage.clear();
         sessionStorage.clear();
         window.location.href = "./signin.html";
       }
+
       function updatePremiumStatus(isPremiumUser) {
         const premiumStatusElement = document.getElementById("premiumStatus");
         const buyPremiumButton = document.getElementById("buyPremiumButton");
         const showLeaderBoardButton =
           document.getElementById("showLeaderBoard");
+        const downloadBtn = document.getElementById("download");
 
         if (isPremiumUser) {
           premiumStatusElement.textContent = "You are a premium user.";
           buyPremiumButton.style.display = "none"; // Hide the buy premium button
           showLeaderBoardButton.style.display = "block";
+          downloadBtn.style.display = "block";
         } else {
           premiumStatusElement.textContent = "";
           buyPremiumButton.style.display = "block"; // Show the buy premium button
@@ -113,8 +204,23 @@
             });
         } else {
           alert("User details not found. Please log in again.");
-          window.location.href = "C:/Srinath/expense-tracke/signin.html";
+          window.location.href = "";
         }
+      }
+
+      function displayLeaderBoardTable(leaderboard) {
+        const table = document.getElementById("leaderBoardTable");
+        const tableBody = document.getElementById("leaderBoardBody");
+        tableBody.innerHTML = "";
+        leaderboard.forEach((userTotalExpense) => {
+          const { totalExpenses, fullName } = userTotalExpense;
+          const row = tableBody.insertRow();
+          const usernameCell = row.insertCell();
+          usernameCell.textContent = fullName;
+          const totalExpensesCell = row.insertCell();
+          totalExpensesCell.textContent = totalExpenses;
+        });
+        table.style.display = "block";
       }
 
       function fetchLeaderBoard(event) {
@@ -141,30 +247,8 @@
             });
         } else {
           alert("User details not found. Please log in again.");
-          window.location.href("C:/Srinath/expense-tracker/signin.html");
+          window.location.href("C:/Users/Sahithi%20Alam/expense-tracker/signin.html");
         }
-      }
-
-      function displayLeaderBoardTable(leaderboard) {
-        const table = document.getElementById("leaderBoardTable");
-        const tableBody = document.getElementById("leaderBoardBody");
-
-        // Clear any existing rows in the table
-        tableBody.innerHTML = "";
-
-        leaderboard.forEach((userTotalExpense) => {
-          const { totalExpenses, fullName } = userTotalExpense;
-          const row = tableBody.insertRow();
-
-          const usernameCell = row.insertCell();
-          usernameCell.textContent = fullName;
-
-          const totalExpensesCell = row.insertCell();
-          totalExpensesCell.textContent = totalExpenses;
-        });
-
-        // Display the table
-        table.style.display = "block";
       }
 
       function createOrder(event) {
@@ -198,7 +282,7 @@
             .then((response) => {
               let { razorpay_order_id, amount, currency } = response;
               var options = {
-                key: "rzp_test_FePwfV1JgZ9mFf",
+                key: "rzp_test_xTWOlTYejN2Ols",
                 order_id: razorpay_order_id,
                 handler: async (response) => {
                   fetch("http://localhost:8080/payment/update-order", {
@@ -231,25 +315,33 @@
                   }),
                 });
                 alert("Payment failed");
-
-                // Fetch user profile after payment failure
                 fetchUserProfileAndUpdateUI();
               });
             })
             .catch((error) => {
               console.log(error);
-              // alert(error.message);
             });
         } else {
           alert("User details not found. Please log in again.");
-          window.location.href = "C:/Srinath/expense-tracker/signin.html";
+          window.location.href = "/C:/Users/Sahithi%20Alam/expense-tracker/signin.html";
         }
+      }
+
+      function updatePaginationButtons() {
+        const firstPageBtn = document.getElementById("firstpage");
+        const previousPageBtn = document.getElementById("previouspage");
+        const nextPageBtn = document.getElementById("nextpage");
+        const lastPageBtn = document.getElementById("lastpage");
+
+        firstPageBtn.disabled = currentPage === 1;
+        previousPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === lastPage;
+        lastPageBtn.disabled = currentPage === lastPage;
       }
 
       function renderExpenseList(expenses) {
         const expenseList = document.getElementById("expenseList");
         expenseList.innerHTML = "";
-
         expenses.forEach((expense) => {
           const listItem = document.createElement("li");
           const expenseAmount = parseFloat(expense.amount);
@@ -257,7 +349,7 @@
             2
           )} | Category: ${expense.category} | Description: ${
             expense.description
-          }`;
+          } | Date : ${new Date(expense.createdAt).toLocaleDateString()} `;
           listItem.textContent = expenseDetails;
 
           const deleteButton = document.createElement("button");
@@ -265,7 +357,6 @@
           deleteButton.addEventListener("click", () => {
             deleteExpense(expense.id);
           });
-
           listItem.appendChild(deleteButton);
           expenseList.appendChild(listItem);
         });
@@ -277,7 +368,8 @@
         const token = localStorage.getItem("token");
 
         if (token) {
-          fetch(`http://localhost:8080/expense/all-expenses`, {
+          const url = `http://localhost:8080/expense/all-expenses?page=${currentPage}&size=${expensesPerPage}`;
+          fetch(url, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
@@ -289,11 +381,13 @@
                 throw new Error("Failed to retrieve expenses");
               }
             })
-            .then((expenses) => {
-              renderExpenseList(expenses);
+            .then((data) => {
+              currentPage = data.current_page;
+              lastPage = data.last_page;
+              renderExpenseList(data.data);
+              updatePaginationButtons();
             })
             .catch((error) => {
-              console.error("Error:", error);
               alert(error.message);
             });
         } else {
