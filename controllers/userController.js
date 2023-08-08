@@ -11,9 +11,9 @@ const AWS = require("aws-sdk");
 require("dotenv").config();
 
 const uploadToS3 = (data, fileName) => {
-  const BUCKET_NAME = "srinathexpensetrackingapp123";
-  const USER_KEY = "AKIAX6DN4NXJRH5AWXTK";
-  const USER_SECRET = "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";
+  const BUCKET_NAME = process.env.AWS_S3_BUCKETNAME;
+  const USER_KEY = "AKIA56XWM5ZPXNQZSAVW";
+  const USER_SECRET = "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";
   let s3Bucket = new AWS.S3({
     accessKeyId: USER_KEY,
     secretAccessKey: USER_SECRET,
@@ -248,12 +248,11 @@ const forgotpassword = async (req, res) => {
         .json({ message: "Something went wrong please try again" });
     }
     const resetUrl = `http://localhost:8080/user/resetpassword/${requestId}`;
-    const client = SibApiV3Sdk.ApiClient.instance;
-    const apiKey = client.authentications["api-key"];
-    apiKey.apiKey =
-      "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";
+    const defaultClient = SibApiV3Sdk.ApiClient.instance;
+    const apiKey = defaultClient.authentications["api-key"];
+    apiKey.apiKey = process.env.BREVO_FP_KEY;
     const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-    const sender = { email: "srinath3898@gmail.com" };
+    const sender = { email: "munnuru.srinath3898@gmail.com", name: "Sahithi" };
     const recievers = [{ email: forgotPasswordEmail }];
     tranEmailApi
       .sendTransacEmail({

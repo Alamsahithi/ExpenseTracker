@@ -1,6 +1,8 @@
 const Razorpay = require("razorpay");
 const Payment = require("../models/paymentModel");
 const User = require("../models/userModel");
+require("dotenv").config();
+
 
 const createOrder = async (req, res) => {
   try {
@@ -14,8 +16,8 @@ const createOrder = async (req, res) => {
       const user = await User.findByPk(req.user.id);
       if (user) {
         const instance = new Razorpay({
-          key_id: "rzp_test_FePwfV1JgZ9mFf",
-          key_secret: "ds00yvE0oIpGZdBMdaCYiLdm",
+          key_id: process.env.RAZORPAY_KEY_ID,
+          key_secret: process.env.RAZORPAY_KEY_SECRET,
         });
         instance.orders.create(
           {

@@ -1,6 +1,5 @@
-const Expense = require("../models/expenseModel");
+const sequelize = require("../configs/databaseConfig");
 const User = require("../models/userModel");
-const Sequelize = require("sequelize");
 
 const getLeaderBorad = async (req, res) => {
   try {
@@ -15,7 +14,7 @@ const getLeaderBorad = async (req, res) => {
       attributes: [
         "fullName",
         [
-          Sequelize.fn("COALESCE", Sequelize.col("totalExpenses"), 0),
+          sequelize.fn("COALESCE", sequelize.col("totalExpenses"), 0),
           "totalExpenses",
         ],
       ],
