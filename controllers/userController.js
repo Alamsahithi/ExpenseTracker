@@ -12,8 +12,8 @@ require("dotenv").config();
 
 const uploadToS3 = (data, fileName) => {
   const BUCKET_NAME = process.env.AWS_S3_BUCKETNAME;
-  const USER_KEY = "AKIA56XWM5ZPXNQZSAVW";
-  const USER_SECRET = "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";
+  const USER_KEY = process.env.AWS_ACCESS_KEY;
+  const USER_SECRET = process.env.AWS_SECRET_KEY;
   let s3Bucket = new AWS.S3({
     accessKeyId: USER_KEY,
     secretAccessKey: USER_SECRET,
