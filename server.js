@@ -1,4 +1,5 @@
 const express = require("express");
+const fs = require("fs")
 require("dotenv").config();
 const cors = require("cors");
 const sequelize = require("./configs/databaseConfig");
@@ -7,12 +8,21 @@ const User = require("./models/userModel");
 const Expense = require("./models/expenseModel");
 const Payment = require("./models/paymentModel");
 const ForgotPasswordRequests = require("./models/forgotPasswordRequestsModel");
+const helmet = require("helmet")
+const compression = require("compression")
+const morgan = require("morgan")
 
 const app = express();
+const accessLogStream = fs.createWriteStream(
+  path.join(__dirname,'access.log'),{flags: 'a'}
+)
 
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(helmet())
+app.use(compression())
+app.use(morgan('combined',{stream:accessLogStream}))
 
 User.hasMany(Expense);
 Expense.belongsTo(User);
