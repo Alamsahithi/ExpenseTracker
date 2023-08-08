@@ -48,21 +48,22 @@
       }
       document
         .getElementById("forgorPasswordForm")
-        .addEventListener("submit", function (event) {
+        .addEventListener("submit", async function (event) {
           event.preventDefault();
           const forgotPasswordEmail = document.getElementById(
             "forgotPasswordEmail"
           ).value;
-          axios
-            .post("http://localhost:8080/user/forgotpassword", {
-              forgotPasswordEmail,
-            })
-            .then((response) => {
-              alert(response.data.message);
-            })
-            .catch((error) => {
-              console.error("Error during forgot password request: ", error);
-            });
+          try {
+            const response = await axios.post(
+              "http://localhost:8080/user/forgotpassword",
+              {
+                forgotPasswordEmail,
+              }
+            );
+            alert(response.data.message);
+          } catch (error) {
+            console.error("Error during forgot password request: ", error);
+          }
         });
       document
         .getElementById("loginForm")
@@ -95,7 +96,7 @@
               );
 
               alert("Login successful!");
-              window.location.href = "C:/Srinath/expense-tracker/expenses.html";
+              window.location.href = "C:/Users/Sahithi%20Alam/expense-tracker/expenses.html";
             })
             .catch((error) => {
               console.error("Error during login: ", error);
