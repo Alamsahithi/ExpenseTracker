@@ -252,7 +252,7 @@ const forgotpassword = async (req, res) => {
     const apiKey = defaultClient.authentications["api-key"];
     apiKey.apiKey = process.env.BREVO_FP_KEY;
     const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-    const sender = { email: "munnuru.srinath3898@gmail.com", name: "Sahithi" };
+    const sender = { email: "sahithialam13@gmail.com", name: "Sahithi" };
     const recievers = [{ email: forgotPasswordEmail }];
     tranEmailApi
       .sendTransacEmail({
