@@ -12,11 +12,9 @@ require("dotenv").config();
 
 const uploadToS3 = (data, fileName) => {
   const BUCKET_NAME = process.env.AWS_S3_BUCKETNAME;
-  const USER_KEY = process.env.AWS_ACCESS_KEY;
-  const USER_SECRET = process.env.AWS_SECRET_KEY;
   let s3Bucket = new AWS.S3({
-    accessKeyId: USER_KEY,
-    secretAccessKey: USER_SECRET,
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY,
   });
   var params = {
     Bucket: BUCKET_NAME,
@@ -311,6 +309,7 @@ const updatepassword = async (req, res) => {
       where: { id: requestId, isactive: true },
     });
     if (!forgotPasswordRequest) {
+      await transaction.rollback();
       return res.status(400).json({ message: "Invalid or expired reset link" });
     }
     const user = await User.findOne({
@@ -322,31 +321,38 @@ const updatepassword = async (req, res) => {
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update user's password in the database
     const updatedUser = await User.update(
       { password: hashedPassword },
-      { where: { id: user.id } }
+      { where: { id: user.id }, transaction }
     );
-    if (!updatedUser) {
+    
+    if (!updatedUser[0]) {
       await transaction.rollback();
-      return res
-        .status(404)
-        .json({ message: "Something went wrong please try again" });
+      return res.status(404).json({ message: "Something went wrong please try again" });
     }
+
+    // Deactivate the forgot password request
     const updatedForgotPasswordRequest = await forgotPasswordRequest.update({
       isactive: false,
-    });
+    }, { transaction });
+    
     if (!updatedForgotPasswordRequest) {
       await transaction.rollback();
-      return res
-        .status(404)
-        .json({ message: "Something went wrong please try again" });
+      return res.status(404).json({ message: "Something went wrong please try again" });
     }
+    
+    // Commit the transaction
     await transaction.commit();
+
     return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
+    await transaction.rollback();
     return res.status(500).json({ message: error.message });
   }
 };
+
 
 module.exports = {
   userSignup,

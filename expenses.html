@@ -345,11 +345,8 @@
         expenses.forEach((expense) => {
           const listItem = document.createElement("li");
           const expenseAmount = parseFloat(expense.amount);
-          const expenseDetails = `Amount: $${expenseAmount.toFixed(
-            2
-          )} | Category: ${expense.category} | Description: ${
-            expense.description
-          } | Date : ${new Date(expense.createdAt).toLocaleDateString()} `;
+          const expenseDetails = `Amount:${expenseAmount.toFixed(2)} | Category: ${expense.category} | Description: ${expense.description} | Date: ${new Date(expense.createdAt).toLocaleDateString()}`;
+;
           listItem.textContent = expenseDetails;
 
           const deleteButton = document.createElement("button");
