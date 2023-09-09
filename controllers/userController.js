@@ -153,7 +153,7 @@ const userSignin = async (req, res) => {
     return res.status(500).json({
       status: false,
       data: null,
-      message: "Server error",
+      message: error.message,
     });
   }
 };
