@@ -21,7 +21,7 @@ const getAllExpenses = async (req, res) => {
     });
 
     return res.status(200).json({
-      current_page: currentPage,
+      current_page: totalPages === 0 ? 0 : currentPage,
       last_page: totalPages,
       data: expenses,
       total_records: totalRecords,

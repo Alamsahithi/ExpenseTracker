@@ -287,7 +287,7 @@ const resetpassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired reset link" });
     }
     const resetFormHTML = fs.readFileSync(
-      path.join(__dirname, "..", "resetPasswordForm.html"),
+      path.join(__dirname, "..", "public", "views", "resetPasswordForm.html"),
       "utf8"
     );
     const formWithRequestId = resetFormHTML.replace("{{requestId}}", requestId);
@@ -321,28 +321,35 @@ const updatepassword = async (req, res) => {
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
-    
+
     // Update user's password in the database
     const updatedUser = await User.update(
       { password: hashedPassword },
       { where: { id: user.id }, transaction }
     );
-    
+
     if (!updatedUser[0]) {
       await transaction.rollback();
-      return res.status(404).json({ message: "Something went wrong please try again" });
+      return res
+        .status(404)
+        .json({ message: "Something went wrong please try again" });
     }
 
     // Deactivate the forgot password request
-    const updatedForgotPasswordRequest = await forgotPasswordRequest.update({
-      isactive: false,
-    }, { transaction });
-    
+    const updatedForgotPasswordRequest = await forgotPasswordRequest.update(
+      {
+        isactive: false,
+      },
+      { transaction }
+    );
+
     if (!updatedForgotPasswordRequest) {
       await transaction.rollback();
-      return res.status(404).json({ message: "Something went wrong please try again" });
+      return res
+        .status(404)
+        .json({ message: "Something went wrong please try again" });
     }
-    
+
     // Commit the transaction
     await transaction.commit();
 
@@ -352,7 +359,6 @@ const updatepassword = async (req, res) => {
     return res.status(500).json({ message: error.message });
   }
 };
-
 
 module.exports = {
   userSignup,
