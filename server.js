@@ -4,7 +4,7 @@ const path = require("path");
 require("dotenv").config();
 const cors = require("cors");
 const sequelize = require("./configs/databaseConfig");
-const port = process.env.PORT || 8080;
+const port = process.env.PORT;
 const User = require("./models/userModel");
 const Expense = require("./models/expenseModel");
 const Payment = require("./models/paymentModel");

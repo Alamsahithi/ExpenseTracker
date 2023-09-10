@@ -1,4 +1,5 @@
-function handleForgotPassword() {
+const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
+forgotPasswordBtn.addEventListener("click", function handleForgotPassword() {
   let loginForm = document.getElementById("loginForm");
   loginForm.style.display = "none";
   let forgorPasswordForm = document.getElementById("forgorPasswordForm");
@@ -9,7 +10,8 @@ function handleForgotPassword() {
   signupLink.style.display = "none";
   let signinLink = document.getElementById("signinLink");
   signinLink.style.display = "block";
-}
+});
+
 document
   .getElementById("forgorPasswordForm")
   .addEventListener("submit", async function (event) {
