@@ -1,15 +1,10 @@
-const Sequelize = require("sequelize");
+const { DataTypes } = require("sequelize");
 const sequelize = require("../configs/databaseConfig");
 
-class Expense extends Sequelize.Model {}
-
-Expense.init(
-  {
-    amount: { type: Sequelize.DataTypes.DOUBLE, allowNull: false },
-    category: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
-    description: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
-  },
-  { sequelize, modelName: "expense" }
-);
+const Expense = sequelize.define("Expense", {
+  amount: { type: DataTypes.INTEGER, allowNull: false },
+  category: { type: DataTypes.STRING(200), allowNull: false },
+  description: { type: DataTypes.STRING(200), allowNull: false },
+});
 
 module.exports = Expense;

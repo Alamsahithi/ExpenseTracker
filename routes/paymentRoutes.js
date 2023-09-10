@@ -2,13 +2,12 @@ const express = require("express");
 const { protect } = require("../middlewares/authMiddleware");
 const {
   createOrder,
-  updateStatus,
+  updateOrder,
 } = require("../controllers/paymentController");
 
 const router = express.Router();
 
 router.post("/create-order", protect, createOrder);
-
-router.post("/update-status", protect, updateStatus);
+router.post("/update-order", protect, updateOrder);
 
 module.exports = router;

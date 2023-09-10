@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Expenses</title>
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src *; style-src 'self' http://* 'unsafe-inline'; script-src 'self' https://checkout.razorpay.com 'unsafe-inline' 'unsafe-eval'"
+    />
+  </head>
+  <body>
+    <div
+      style="
+        display: flex;
+        align-items: center;
+        width: 100%;
+        justify-content: space-between;
+      "
+    >
+      <h1>Expenses</h1>
+      <button id="logout">Logout</button>
+    </div>
+
+    <h2>Add Expense Form</h2>
+    <form id="addExpenseForm">
+      <div>
+        <label for="expenseAmount">Expense Amount:</label>
+        <input type="number" id="amount" name="amount" step="0.01" required />
+      </div>
+      <div>
+        <label for="category">Category:</label>
+        <select id="category" name="category" required>
+          <option value="food">Food</option>
+          <option value="petrol">Petrol</option>
+          <option value="movies">Movies</option>
+          <option value="stationery">Stationery</option>
+          <option value="electronics">Electronics</option>
+        </select>
+      </div>
+      <div>
+        <label for="description">Description:</label>
+        <input type="text" id="description" name="description" required />
+      </div>
+      <button type="submit">Add Expense</button>
+    </form>
+    <div>
+      <div id="premiumStatus"></div>
+      <button id="buyPremium">Buy Premium</button>
+      <button id="showLeaderBoard" style="display: none">
+        Show Leader Board
+      </button>
+    </div>
+    <table id="leaderBoardTable" style="display: none">
+      <thead>
+        <tr>
+          <th>Leaderboard</th>
+        </tr>
+        <tr>
+          <th>Username</th>
+          <th>Total Expenses</th>
+        </tr>
+      </thead>
+      <tbody id="leaderBoardBody"></tbody>
+    </table>
+    <button id="downloadExpenses" style="display: none">
+      Download Expenses
+    </button>
+    <h2>Expense List</h2>
+    <label for="expensesPerPage">Expenses Per Page:</label>
+    <select id="expensesPerPage">
+      <option value="5">5</option>
+      <option value="10">10</option>
+      <option value="20">20</option>
+      <option value="30">30</option>
+      <option value="40">40</option>
+    </select>
+    <ul id="expenseList"></ul>
+    <div id="pagination">
+      <button id="firstPage">First Page</button>
+      <button id="previousPage">Previous Page</button>
+      <button id="nextPage">Next Page</button>
+      <button id="lastPage">Last Page</button>
+    </div>
+
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="/public/js/expenses.js"></script>
+  </body>
+</html>

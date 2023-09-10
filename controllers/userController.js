@@ -1,256 +1,372 @@
-const User = require("../models/userModel");
-const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const sequelize = require("../configs/databaseConfig");
+const bcrypt = require("bcryptjs");
+const User = require("../models/userModel");
 const SibApiV3Sdk = require("sib-api-v3-sdk");
 const { v4: uuidv4 } = require("uuid");
-const ForgotPasswordRequest = require("../models/forgotPasswordRequestModel");
+const ForgotPasswordRequests = require("../models/forgotPasswordRequestsModel");
+const fs = require("fs");
+const path = require("path");
+const sequelize = require("../configs/databaseConfig");
+const AWS = require("aws-sdk");
 require("dotenv").config();
 
-const genereteToken = ({ id, fullName, email, phone }) => {
-  return jwt.sign({ id, fullName, email, phone }, "UYGR$#%^&*UIHGHGCDXRSW", {
-    expiresIn: "30d",
+const uploadToS3 = (data, fileName) => {
+  const BUCKET_NAME = process.env.AWS_S3_BUCKETNAME;
+  let s3Bucket = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY,
+  });
+  var params = {
+    Bucket: BUCKET_NAME,
+    Key: fileName,
+    Body: data,
+    ACL: "public-read",
+  };
+  return new Promise((resolve, reject) => {
+    s3Bucket.upload(params, (err, res) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(res?.Location);
+      }
+    });
   });
 };
 
-const signup = async (req, res) => {
-  const transaction = await sequelize.transaction();
+const download = async (req, res) => {
   try {
-    const { fullName, email, mobile, password } = req.body;
-    if (!fullName || !email || !mobile || !password) {
+    const user = await User.findByPk(req?.user?.id);
+    if (!user) {
+      return res.status(400).json({ message: "User not found" });
+    }
+    if (!user.premiumUser) {
+      return res.status(400).json({ message: "You are not a premium user" });
+    }
+    const expenses = await user.getExpenses();
+    if (!expenses) {
+      return res
+        .status(400)
+        .json({ message: "Something went wrong, please try again" });
+    }
+    if (expenses?.length === 0) {
+      return res.status(200).json({ message: "You don't have any expenses" });
+    }
+    const stringifiesExpenses = JSON.stringify(expenses);
+
+    const fileName = `Expenses${user.id}/${new Date()}.txt`;
+    const fileUrl = await uploadToS3(stringifiesExpenses, fileName);
+    return res.status(200).json({ fileUrl });
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const generateToken = ({ id, fullName, email, phone, premiumUser }) => {
+  return jwt.sign(
+    { id, fullName, email, phone, premiumUser },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "30d",
+    }
+  );
+};
+
+//@desc Register user
+//route POST /user/signup
+//access public
+const userSignup = async (req, res) => {
+  const { fullName, email, password, phone } = req.body;
+  try {
+    if (!fullName || !email || !password || !phone) {
+      return res.status(500).json({
+        status: false,
+        data: null,
+        message: "Please fill all the required fields",
+      });
+    } else {
+      const userExists = await User.findOne({ where: { email } });
+      if (userExists) {
+        return res
+          .status(409)
+          .json({ status: false, data: null, message: "User already exits" });
+      } else {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        const user = await User.create({
+          fullName,
+          email,
+          password: hashedPassword,
+          phone,
+          premiumUser: false,
+          totalExpenses: 0,
+        });
+        if (user) {
+          return res.status(201).json({
+            status: true,
+            message: "User created successfully",
+          });
+        } else {
+          return res.status(400).json({
+            status: false,
+            data: null,
+            message: "Internal server error",
+          });
+        }
+      }
+    }
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ status: false, data: null, message: error.message });
+  }
+};
+
+//@desc Authenticate user
+//route POST /user/signin
+//access public
+const userSignin = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    if (email && password) {
+      const user = await User.findOne({ where: { email } });
+      if (user && (await bcrypt.compare(password, user.password))) {
+        const { id, fullName, email, phone, premiumUser } = user;
+        res.status(201).json({
+          status: true,
+          token: generateToken(user),
+          data: { user: { id, fullName, email, phone, premiumUser } },
+          message: "Logged in successfully",
+        });
+      } else {
+        res
+          .status(400)
+          .json({ status: false, data: null, message: "Invalid credentials" });
+      }
+    } else {
       return res.status(400).json({
         status: false,
         data: null,
-        message: "Missing required fields",
+        message: "Missing email or password",
       });
     }
-    const userExits = await User.findOne({ where: { email } });
-    if (userExits) {
-      return res
-        .status(403)
-        .json({ status: false, data: null, message: "Account already exists" });
-    }
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-    const user = await User.create(
-      {
-        fullName,
-        email,
-        mobile,
-        password: hashedPassword,
-        premiumUser: false,
-        totalExpenses: 0,
-      },
-      { transaction }
-    );
-    if (!user) {
-      await transaction.rollback();
-      throw new Error(
-        "Some thing went wrong while signing up, please try again"
-      );
-    }
-    await transaction.commit();
-    return res.status(201).json({
-      status: true,
-      data: user,
-      message: "Signedup successfully, please signin to continue...",
-    });
   } catch (error) {
-    await transaction.rollback();
-    return res
-      .status(500)
-      .json({ status: false, data: null, message: error.message });
+    return res.status(500).json({
+      status: false,
+      data: null,
+      message: error.message,
+    });
   }
 };
 
-const signin = async (req, res) => {
+//@desc get user details
+//@route GET /user/profile
+//access private
+const getUserProfile = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) {
+    const user = await User.findByPk(req?.user?.id);
+    if (user) {
+      return res.status(200).json(user);
+    } else {
+      return res.status(400).json({ message: "User not found" });
+    }
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      data: null,
+      message: "Server error",
+    });
+  }
+};
+
+//@desc edit user details
+//@route POST /user/editProfile
+//access private
+const editUserProfile = async (req, res) => {
+  const { phone } = req.body;
+  try {
+    if (phone) {
+      const user = await User.findByPk(req.user.id);
+      if (user) {
+        const updatedUser = await user.update(req.body);
+        if (updatedUser) {
+          const { id, fullName, email, phone, profilePic } = updatedUser;
+          return res.status(200).json({
+            status: true,
+            user: { id, fullName, email, phone, profilePic },
+            message: "User details updated successfully",
+          });
+        } else {
+          return res.status(400).json({
+            status: false,
+            data: null,
+            message: "Something went wrong",
+          });
+        }
+      } else {
+        return res.status(400).json({ message: "User not found" });
+      }
+    } else {
       return res.status(400).json({
         status: false,
         data: null,
-        message: "Email or password missing",
+        message: "Phone number missing",
       });
     }
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-      return res
-        .status(404)
-        .json({ status: false, data: null, message: "User not found" });
-    }
-    const comparePassword = await bcrypt.compare(password, user.password);
-    if (user && !comparePassword) {
-      return res
-        .status(403)
-        .json({ status: false, data: null, message: "Invalid credentials" });
-    }
-    const token = genereteToken(user);
-    return res.status(201).json({
-      status: true,
-      data: { token, user },
-      message: "Logged in successfully",
+  } catch (error) {
+    return res.status(500).json({
+      status: false,
+      data: null,
+      message: "Server error",
     });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ status: false, data: null, message: error.message });
   }
 };
 
-const profile = async (req, res) => {
+//forgot password
+const forgotpassword = async (req, res) => {
+  const { forgotPasswordEmail } = req.body;
   try {
-    return res
-      .status(200)
-      .json({ status: true, data: req.user, message: "User profile" });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ status: false, data: null, message: error.message });
-  }
-};
-
-const forgotPassword = async (req, res) => {
-  const transaction = await sequelize.transaction();
-  try {
-    const { forgotPasswordEmail } = req.body;
     if (!forgotPasswordEmail) {
-      return res.status(400).json({
-        status: false,
-        data: null,
-        message: "Missing email",
-      });
+      return res.status(500).json({ message: "Please send a valid email id" });
     }
     const user = await User.findOne({ where: { email: forgotPasswordEmail } });
     if (!user) {
-      return res.status(400).json({
-        status: false,
-        data: null,
-        message: "Please enter registered email id",
-      });
+      return res
+        .status(400)
+        .json({ message: "Please enter the registered email id" });
     }
     const requestId = uuidv4();
-    const forgotPasswordRequest = await user.createForgotPasswordRequest(
-      {
-        id: requestId,
-      },
-      { transaction }
-    );
+    const forgotPasswordRequest = await ForgotPasswordRequests.create({
+      id: requestId,
+      userId: user.id,
+      isactive: true,
+    });
     if (!forgotPasswordRequest) {
-      await transaction.rollback();
-      throw new Error(
-        "Something went wrong while sending email, please try again"
-      );
+      return res
+        .status(400)
+        .json({ message: "Something went wrong please try again" });
     }
+    const resetUrl = `http://localhost:8080/user/resetpassword/${requestId}`;
     const defaultClient = SibApiV3Sdk.ApiClient.instance;
     const apiKey = defaultClient.authentications["api-key"];
-    apiKey.apiKey = process.env.BREVO_API_KEY;
+    apiKey.apiKey = process.env.BREVO_FP_KEY;
     const tranEmailApi = new SibApiV3Sdk.TransactionalEmailsApi();
-    const sender = {
-      email: "munnuru.srinath3898@gmail.com",
-      name: "Munnuru Srinath",
-    };
+    const sender = { email: "sahithialam13@gmail.com", name: "Sahithi" };
     const recievers = [{ email: forgotPasswordEmail }];
-    const resetUrl = `http://localhost:3000/resetpassword/?requestId=${requestId}`;
-    const emailSent = await tranEmailApi.sendTransacEmail({
-      sender,
-      to: recievers,
-      subject: "Reset Password",
-      htmlContent: `<p>Hello ${user.fullName},</p><p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
-    });
-    if (!emailSent) {
-      await transaction.rollback();
-      throw new Error(
-        "Something went wrong while sending email, please try again"
-      );
-    }
-    await transaction.commit();
-    return res.status(201).json({
+    tranEmailApi
+      .sendTransacEmail({
+        sender,
+        to: recievers,
+        subject: "Reset Password",
+        htmlContent: `<p>Hello ${user.fullName},</p><p>Click <a href="${resetUrl}">here</a> to reset your password.</p>`,
+      })
+      .then(() => {
+        return res.status(201).json({
+          message:
+            "An email has been sent to your registered mail id with the reset password link",
+        });
+      })
+      .catch((error) => {
+        return res.status(500).json({ message: error });
+      });
+  } catch (error) {
+    return res.status(500).json({
       status: false,
       data: null,
-      message:
-        "An email has been sent to your registered mail id with the reset password link",
+      message: error.message,
     });
-  } catch (error) {
-    return res
-      .status(500)
-      .json({ status: false, data: null, message: error.message });
   }
 };
 
 const resetpassword = async (req, res) => {
-  const transaction = await sequelize.transaction();
+  const { requestId } = req.params;
   try {
-    const { requestId } = req.params;
-    const forgotPasswordRequest = await ForgotPasswordRequest.findOne({
+    const forgotPasswordRequest = await ForgotPasswordRequests.findOne({
       where: { id: requestId, isactive: true },
     });
     if (!forgotPasswordRequest) {
-      return res.status(400).json({
-        status: false,
-        data: null,
-        message: "Invalid or expired reset link",
-      });
+      return res.status(400).json({ message: "Invalid or expired reset link" });
     }
-    const { newPassword, confirmPassword } = req.body;
-    if (!newPassword || !confirmPassword) {
-      return res.status(400).json({
-        status: false,
-        data: null,
-        message: "Missing required fields",
-      });
-    }
+    const resetFormHTML = fs.readFileSync(
+      path.join(__dirname, "..", "public", "views", "resetPasswordForm.html"),
+      "utf8"
+    );
+    const formWithRequestId = resetFormHTML.replace("{{requestId}}", requestId);
+    return res.send(formWithRequestId);
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const updatepassword = async (req, res) => {
+  const { newPassword, confirmPassword, requestId } = req.body;
+  const transaction = await sequelize.transaction();
+  try {
     if (newPassword !== confirmPassword) {
-      return res
-        .status(400)
-        .json({ status: false, data: null, message: "Passwords do not match" });
+      await transaction.rollback();
+      return res.status(400).json({ message: "Passwords do not match" });
     }
-    const user = await User.findByPk(forgotPasswordRequest.userId);
+    const forgotPasswordRequest = await ForgotPasswordRequests.findOne({
+      where: { id: requestId, isactive: true },
+    });
+    if (!forgotPasswordRequest) {
+      await transaction.rollback();
+      return res.status(400).json({ message: "Invalid or expired reset link" });
+    }
+    const user = await User.findOne({
+      where: { id: forgotPasswordRequest.userId },
+    });
     if (!user) {
-      return res
-        .status(404)
-        .json({ status: false, data: null, message: "User not found" });
+      await transaction.rollback();
+      return res.status(404).json({ message: "User not found" });
     }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
-    const updatedUser = await user.update(
+
+    // Update user's password in the database
+    const updatedUser = await User.update(
       { password: hashedPassword },
-      { transaction }
+      { where: { id: user.id }, transaction }
     );
-    if (!updatedUser) {
+
+    if (!updatedUser[0]) {
       await transaction.rollback();
-      return res.status(404).json({
-        status: false,
-        data: null,
-        message: "Something went wrong please try again",
-      });
+      return res
+        .status(404)
+        .json({ message: "Something went wrong please try again" });
     }
+
+    // Deactivate the forgot password request
     const updatedForgotPasswordRequest = await forgotPasswordRequest.update(
       {
         isactive: false,
       },
       { transaction }
     );
+
     if (!updatedForgotPasswordRequest) {
       await transaction.rollback();
-      return res.status(404).json({
-        status: false,
-        data: null,
-        message:
-          "Something went wrong while resetting password, please try again...",
-      });
+      return res
+        .status(404)
+        .json({ message: "Something went wrong please try again" });
     }
+
+    // Commit the transaction
     await transaction.commit();
-    return res.status(200).json({
-      status: true,
-      data: null,
-      message: "Successfully changed your password",
-    });
+
+    return res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ status: false, data: null, message: error.message });
+    await transaction.rollback();
+    return res.status(500).json({ message: error.message });
   }
 };
 
-module.exports = { signup, signin, profile, forgotPassword, resetpassword };
+module.exports = {
+  userSignup,
+  userSignin,
+  getUserProfile,
+  editUserProfile,
+  forgotpassword,
+  resetpassword,
+  updatepassword,
+  download,
+};

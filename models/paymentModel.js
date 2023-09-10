@@ -1,17 +1,12 @@
-const Sequelize = require("sequelize");
+const { DataTypes } = require("sequelize");
 const sequelize = require("../configs/databaseConfig");
 
-class Payment extends Sequelize.Model {}
-
-Payment.init(
-  {
-    orderId: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
-    rpOrderId: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
-    amount: { type: Sequelize.DataTypes.INTEGER, allowNull: false },
-    currency: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
-    status: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
-  },
-  { sequelize, modelName: "payment" }
-);
+const Payment = sequelize.define("Payment", {
+  razorpay_order_id: { type: DataTypes.STRING(200), allowNull: false },
+  order_id: { type: DataTypes.STRING(200), allowNull: false },
+  amount: { type: DataTypes.INTEGER, allowNull: false },
+  currency: { type: DataTypes.STRING(200), allowNull: false },
+  status: { type: DataTypes.STRING(200), allowNull: false },
+});
 
 module.exports = Payment;
