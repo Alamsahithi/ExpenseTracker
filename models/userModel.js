@@ -1,19 +1,23 @@
-const { DataTypes } = require("sequelize");
+const Sequelize = require("sequelize");
 const sequelize = require("../configs/databaseConfig");
 
-const User = sequelize.define("User", {
-  fullName: { type: DataTypes.STRING(200), allowNull: false },
-  email: { type: DataTypes.STRING(200), allowNull: false },
-  phone: { type: DataTypes.STRING(200), allowNull: false },
-  password: { type: DataTypes.STRING(200), allowNull: false },
-  premiumUser: { type: DataTypes.BOOLEAN, allowNull: false },
-  totalExpenses: { type: DataTypes.INTEGER, allowNull: false },
-});
+class User extends Sequelize.Model {}
+
+User.init(
+  {
+    fullName: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
+    email: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
+    mobile: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
+    password: { type: Sequelize.DataTypes.STRING(255), allowNull: false },
+    premiumUser: { type: Sequelize.DataTypes.BOOLEAN, allowNull: false },
+    totalExpenses: { type: Sequelize.DataTypes.DOUBLE, allowNull: false },
+  },
+  { sequelize, modelName: "user" }
+);
 
 User.prototype.toJSON = function () {
   const values = Object.assign({}, this.get());
   delete values.password;
-
   return values;
 };
 

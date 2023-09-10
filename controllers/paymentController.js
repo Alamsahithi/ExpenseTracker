@@ -1,97 +1,100 @@
-const Razorpay = require("razorpay");
 const Payment = require("../models/paymentModel");
-const User = require("../models/userModel");
+const Razorpay = require("razorpay");
+const sequelize = require("../configs/databaseConfig");
 require("dotenv").config();
 
-
 const createOrder = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    const { order_id, amount, currency } = req.body;
-    const orderExists = await Payment.findOne({ where: { order_id } });
+    const { orderId } = req.body;
+    const orderExists = await Payment.findOne({ where: { orderId } });
     if (orderExists) {
       return res
         .status(409)
         .json({ status: false, data: null, message: "Order already created" });
-    } else {
-      const user = await User.findByPk(req.user.id);
-      if (user) {
-        const instance = new Razorpay({
-          key_id: process.env.RAZORPAY_KEY_ID,
-          key_secret: process.env.RAZORPAY_KEY_SECRET,
-        });
-        instance.orders.create(
-          {
-            amount: parseFloat(amount) * 100,
-            currency: currency,
-          },
-          async (error, response) => {
-            if (error) {
-              return res.status(500).json({ error });
-            } else {
-              const { id, amount, currency } = response;
-              const order = await user.createPayment({
-                order_id: order_id,
-                razorpay_order_id: id,
-                amount: amount / 100,
-                currency: currency,
-                status: "PENDING",
-              });
-              if (order) {
-                return res.status(201).json(order);
-              } else {
-                return res
-                  .status(500)
-                  .json({ message: "Internal server error" });
-              }
-            }
-          }
-        );
-      } else {
-        return res.status(400).json({ message: "User not found" });
-      }
     }
-  } catch (error) {
-    return res.status(500).send({
-      status: false,
-      data: null,
-      message: error.message,
+    const instance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
     });
-  }
-};
-
-const updateOrder = async (req, res) => {
-  try {
-    const { razorpay_order_id, status } = req.body;
-    const user = await User.findByPk(req.user.id);
-    if (user) {
-      const { id } = user;
-      const orderExists = await Payment.findOne({
-        where: { razorpay_order_id },
-      });
-      if (orderExists) {
-        await Payment.update({ status }, { where: { razorpay_order_id } });
-        const updatedPayment = await Payment.findOne({
-          where: { razorpay_order_id },
-        });
-        if (status === "SUCCESS") {
-          await User.update({ premiumUser: true }, { where: { id } });
-        } else {
-          await User.update({ premiumUser: false }, { where: { id } });
+    instance.orders.create(
+      { amount: 10000, currency: "INR" },
+      async (error, response) => {
+        if (error) {
+          return res
+            .status(500)
+            .json({ status: false, data: null, message: error.message });
         }
-        return res.status(200).json(updatedPayment);
-      } else {
-        return res.status(400).json({ message: "payment not found" });
+        const { id, amount, currency } = response;
+        const payment = await req.user.createPayment(
+          {
+            orderId: orderId,
+            rpOrderId: id,
+            amount: amount / 100,
+            currency: currency,
+            status: "PENDING",
+          },
+          { transaction }
+        );
+        if (!payment) {
+          await transaction.rollback();
+          throw new Error(
+            "Something went wrong while creating payment, please try again"
+          );
+        }
+        await transaction.commit();
+        return res.status(201).json({
+          status: true,
+          data: payment,
+          message:
+            "Your order has been created successfully, redirecting to payments screen...",
+        });
       }
-    } else {
-      return res.status(400).json({ message: "User not found" });
-    }
+    );
   } catch (error) {
-    return res.status(500).send({
-      status: false,
-      data: null,
-      message: error.message,
-    });
+    await transaction.rollback();
+    return res
+      .status(500)
+      .json({ status: false, data: null, message: error.message });
   }
 };
 
-module.exports = { createOrder, updateOrder };
+const updateStatus = async (req, res) => {
+  const transaction = await sequelize.transaction();
+  try {
+    const { rpOrderId, status } = req.body;
+    if (!rpOrderId || !status) {
+      return res.status(400).json({
+        status: false,
+        data: null,
+        message: "Missing required fields",
+      });
+    }
+    const payment = await Payment.findOne({ where: { rpOrderId } });
+    if (!payment) {
+      return res
+        .status(400)
+        .json({ status: false, data: null, message: "Order not found" });
+    }
+    const updates = await Promise.all(
+      [
+        payment.update({ status }),
+        req.user.update({ premiumUser: status === "SUCCESS" ? true : false }),
+      ],
+      { transaction }
+    );
+    if (!updates) {
+      await transaction.rollback();
+      throw new Error("Something went wrong while updating payment status");
+    }
+    await transaction.commit();
+    return res.status(201).json({ status: true, data: updates });
+  } catch (error) {
+    await transaction.rollback();
+    return res
+      .status(500)
+      .json({ status: false, data: null, message: error.message });
+  }
+};
+
+module.exports = { createOrder, updateStatus };

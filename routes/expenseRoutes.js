@@ -1,15 +1,19 @@
 const express = require("express");
-const { protect } = require("../middlewares/authMiddleware");
 const {
-  getAllExpenses,
   addExpense,
+  getAllExpenses,
+  editExpense,
   deleteExpense,
 } = require("../controllers/expenseController");
+const { protect } = require("../middlewares/authMiddleware");
 const router = express.Router();
 
-router.get("/all-expenses", protect, getAllExpenses);
-
 router.post("/add-expense", protect, addExpense);
-router.delete("/delete-expense", protect, deleteExpense);
+
+router.get("/expenses", protect, getAllExpenses);
+
+router.post("/edit-expense/:expenseId", protect, editExpense);
+
+router.delete("/delete-expense/:expenseId", protect, deleteExpense);
 
 module.exports = router;
