@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../configs/databaseConfig");
+const sequelize = require("../configurations/databaseConfig");
 
 const Payment = sequelize.define("Payment", {
   razorpay_order_id: { type: DataTypes.STRING(200), allowNull: false },
