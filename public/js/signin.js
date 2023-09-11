@@ -21,7 +21,7 @@ document
     ).value;
     try {
       const response = await axios.post(
-        "http://localhost:8080/user/forgotpassword",
+        "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/forgotpassword",
         {
           forgotPasswordEmail,
         }

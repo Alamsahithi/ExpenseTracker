@@ -245,7 +245,7 @@ const forgotpassword = async (req, res) => {
         .status(400)
         .json({ message: "Something went wrong please try again" });
     }
-    const resetUrl = `http://localhost:8080/user/resetpassword/${requestId}`;
+    const resetUrl = `http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/resetpassword/${requestId}`;
     const defaultClient = SibApiV3Sdk.ApiClient.instance;
     const apiKey = defaultClient.authentications["api-key"];
     apiKey.apiKey = process.env.BREVO_FP_KEY;
