@@ -38,13 +38,16 @@ document
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    fetch("http://localhost:8080/user/signin", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    })
+    fetch(
+      "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/signin",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      }
+    )
       .then(async (response) => {
         if (!response.ok) {
           return response.json().then((data) => {
