@@ -48,11 +48,14 @@ const downloadExpensesButton = document
   .addEventListener("click", function download() {
     const token = localStorage.getItem("token");
     if (token) {
-      fetch(`http://localhost:8080/user/download`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
+      fetch(
+        `http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      )
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -108,11 +111,14 @@ function updatePremiumStatus(isPremiumUser) {
 function fetchUserProfileAndUpdateUI() {
   const token = localStorage.getItem("token");
   if (token) {
-    fetch("http://localhost:8080/user/profile", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    fetch(
+      "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/profile",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -153,11 +159,14 @@ const showLeaderBoard = document.getElementById("showLeaderBoard");
 showLeaderBoard.addEventListener("click", function fetchLeaderBoard(event) {
   const token = localStorage.getItem("token");
   if (token) {
-    fetch("http://localhost:8080/premium/leaderboard", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    fetch(
+      "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/premium/leaderboard",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    )
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -189,14 +198,17 @@ buyPremium.addEventListener("click", function createOrder(event) {
       amount: 100,
       currency: "INR",
     };
-    fetch("http://localhost:8080/payment/create-order", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(orderData),
-    })
+    fetch(
+      "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/payment/create-order",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(orderData),
+      }
+    )
       .then((response) => {
         if (response.ok) {
           return response.json();
@@ -210,17 +222,20 @@ buyPremium.addEventListener("click", function createOrder(event) {
           key: "rzp_test_xTWOlTYejN2Ols",
           order_id: razorpay_order_id,
           handler: async (response) => {
-            fetch("http://localhost:8080/payment/update-order", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response?.razorpay_order_id,
-                status: "SUCCESS",
-              }),
-            });
+            fetch(
+              "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/payment/update-order",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  razorpay_order_id: response?.razorpay_order_id,
+                  status: "SUCCESS",
+                }),
+              }
+            );
             alert("Payment Successfull");
             fetchUserProfileAndUpdateUI();
           },
@@ -228,17 +243,20 @@ buyPremium.addEventListener("click", function createOrder(event) {
         var rzp1 = new Razorpay(options);
         rzp1.open();
         rzp1.on("payment.failed", function (response) {
-          fetch("http://localhost:8080/payment/update-order", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              razorpay_order_id: response?.order_id,
-              status: "FAILED",
-            }),
-          });
+          fetch(
+            "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/payment/update-order",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response?.order_id,
+                status: "FAILED",
+              }),
+            }
+          );
           alert("Payment failed");
           fetchUserProfileAndUpdateUI();
         });
@@ -280,7 +298,7 @@ function fetchExpenses() {
   const token = localStorage.getItem("token");
 
   if (token) {
-    const url = `http://localhost:8080/expense/all-expenses?page=${currentPage}&size=${expensesPerPage}`;
+    const url = `http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/expense/all-expenses?page=${currentPage}&size=${expensesPerPage}`;
     fetch(url, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -312,12 +330,15 @@ function deleteExpense(expenseId) {
   console.log(expenseId);
   const token = localStorage.getItem("token");
 
-  fetch(`http://localhost:8080/expense/delete-expense?expenseId=${expenseId}`, {
-    method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  })
+  fetch(
+    `http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/expense/delete-expense?expenseId=${expenseId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  )
     .then((response) => {
       if (response.ok) {
         alert("Expense deleted successfully!");
@@ -354,14 +375,17 @@ document
       const token = localStorage.getItem("token");
 
       if (userId) {
-        fetch(`http://localhost:8080/expense/add-expense`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(expense),
-        })
+        fetch(
+          `http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/expense/add-expense`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(expense),
+          }
+        )
           .then((response) => {
             if (response.ok) {
               alert("Expense saved successfully!");
