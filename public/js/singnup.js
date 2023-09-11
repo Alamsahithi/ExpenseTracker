@@ -11,13 +11,16 @@ document
       user[key] = value;
     }
 
-    fetch("http://localhost:8080/user/signup", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(user),
-    })
+    fetch(
+      "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/signup",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(user),
+      }
+    )
       .then((response) => {
         if (response.ok) {
           return response.json();
