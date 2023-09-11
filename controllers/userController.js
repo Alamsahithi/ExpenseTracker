@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const ForgotPasswordRequests = require("../models/forgotPasswordRequestsModel");
 const fs = require("fs");
 const path = require("path");
-const sequelize = require("../configs/databaseConfig");
+const sequelize = require("../configurations/databaseConfig");
 const AWS = require("aws-sdk");
 require("dotenv").config();
 

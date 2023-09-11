@@ -1,4 +1,4 @@
-const sequelize = require("../configs/databaseConfig");
+const sequelize = require("../configurations/databaseConfig");
 const User = require("../models/userModel");
 
 const getLeaderBorad = async (req, res) => {

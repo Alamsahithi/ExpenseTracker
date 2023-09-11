@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 require("dotenv").config();
 const cors = require("cors");
-const sequelize = require("./configs/databaseConfig");
+const sequelize = require("./configurations/databaseConfig");
 const port = process.env.PORT;
 const User = require("./models/userModel");
 const Expense = require("./models/expenseModel");

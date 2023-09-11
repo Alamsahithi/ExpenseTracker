@@ -1,5 +1,5 @@
 const { DataTypes } = require("sequelize");
-const sequelize = require("../configs/databaseConfig");
+const sequelize = require("../configurations/databaseConfig");
 
 const Expense = sequelize.define("Expense", {
   amount: { type: DataTypes.INTEGER, allowNull: false },
