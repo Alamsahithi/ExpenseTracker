@@ -8,7 +8,7 @@ forgotPasswordBtn.addEventListener("click", function handleForgotPassword() {
   forgotPasswordBtn.style.display = "none";
   let signupLink = document.getElementById("signup");
   signupLink.style.display = "none";
-  let signinLink = document.getElementById("signinLink");
+  let signinLink = document.getElementById("loginLink");
   signinLink.style.display = "block";
 });
 
@@ -19,17 +19,31 @@ document
     const forgotPasswordEmail = document.getElementById(
       "forgotPasswordEmail"
     ).value;
-    try {
-      const response = await axios.post(
-        "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/forgotpassword",
-        {
-          forgotPasswordEmail,
+    fetch(
+      "http://expensetrackernode-env.eba-gha72emd.ap-south-1.elasticbeanstalk.com/user/forgotpassword",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ forgotPasswordEmail }),
+      }
+    )
+      .then(async (response) => {
+        if (!response.ok) {
+          return response.json().then((data) => {
+            alert(data.message);
+            throw new Error(data.message);
+          });
         }
-      );
-      alert(response.data.message);
-    } catch (error) {
-      console.error("Error during forgot password request: ", error);
-    }
+        return response.json();
+      })
+      .then((data) => {
+        alert(data?.message);
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   });
 document
   .getElementById("loginForm")
